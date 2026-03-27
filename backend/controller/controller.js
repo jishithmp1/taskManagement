@@ -1,9 +1,11 @@
 const model = require("../model/model");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { log } = require("node:console");
 
 async function signup(req, res) {
     const { username, email, password } = req.body;
+console.log(username, email, password);
 
     if (!username || !email || !password) {
         res.status(400).json({ success: false, error: "invalid input" });
@@ -11,7 +13,8 @@ async function signup(req, res) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const result = model.createUser(username, email, hashedPassword);
+    const result = await model.createUser(username, email, hashedPassword);
+console.log(result);
 
     if (result.success) {
         res.status(201).json({ success: true, message: "User created successfully", user: result.data });
@@ -27,12 +30,14 @@ async function login(req, res) {
         res.status(400).json({ success: false, error: "invalid input" });
     }
 
-    const row = model.getUserData(email);
-    if (row.length > 0) {
-        const match = await bcrypt.compare(password, row[0].user_password);
+    const row = await model.getUserData(email);
+    console.log(row);
+    
+    if (row) {
+        const match = await bcrypt.compare(password, row.user_password);
         
-        if (email === row[0].user_email && match) {
-            const user = row[0];
+        if (email === row.user_email && match) {
+            const user = row;
             const token = jwt.sign(user, process.env.JWT_SECRET, {expiresIn: "1h"});
             res.status(200).json({ success: true, message: "Login successfully",token, user});
         } else {
